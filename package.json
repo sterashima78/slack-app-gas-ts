@@ -1,0 +1,21 @@
+{
+  "name": "slack-app-gas-ts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/sterashima78/slack-app-gas-ts.git"
+  },
+  "packageManager": "npm@7.24.0",
+  "keywords": [],
+  "author": "sterashima",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sterashima78/slack-app-gas-ts/issues"
+  },
+  "homepage": "https://github.com/sterashima78/slack-app-gas-ts#readme"
+}
