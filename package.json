@@ -17,5 +17,8 @@
   "bugs": {
     "url": "https://github.com/sterashima78/slack-app-gas-ts/issues"
   },
-  "homepage": "https://github.com/sterashima78/slack-app-gas-ts#readme"
+  "homepage": "https://github.com/sterashima78/slack-app-gas-ts#readme",
+  "devDependencies": {
+    "@google/clasp": "^2.4.1"
+  }
 }
