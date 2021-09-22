@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs/promises";
 import { getEnv } from "./getEnv";
 
-export const prepareDeploy = () =>
+export const prepareEnv = () =>
   fs.writeFile(
     path.resolve(__dirname, "..", ".clasp.json"),
     JSON.stringify({

@@ -1,9 +1,9 @@
 import { getEnv } from "./getEnv";
 import execa from "execa";
-import { prepareDeploy } from "./prepare-deploy";
+import { prepareEnv } from "./prepareEnv";
 const deploy = async () => {
   const env = getEnv();
-  await prepareDeploy();
+  await prepareEnv();
   await execa("webpack", [], {
     preferLocal: true,
     stdio: "inherit",
