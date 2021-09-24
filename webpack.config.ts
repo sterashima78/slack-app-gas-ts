@@ -2,7 +2,8 @@ import { Configuration, DefinePlugin } from "webpack";
 import path from "path";
 import GasPlugin from "gas-webpack-plugin";
 import CopyPlugin from "copy-webpack-plugin";
-
+import { getEnv } from "./build/getEnv";
+const env = getEnv();
 const config: Configuration = {
   entry: "./src/index.ts",
   output: {
@@ -28,7 +29,7 @@ const config: Configuration = {
       patterns: [{ from: "./src/appsscript.json" }],
     }),
     new DefinePlugin({
-      NODE_ENV: JSON.stringify(process.env.NODE_ENV),
+      "process.env.SLACK_BOT_TOKEN": JSON.stringify(env.SLACK_BOT_TOKEN),
     }),
   ],
 };
