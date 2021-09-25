@@ -1,7 +1,7 @@
 import { bugModal, devModal, questionStart } from "./modal";
-import { ack, routering, slackApi, toInputValues } from "./slack";
+import { ack, createCommands, slackApi, toInputValues } from "./slack";
 
-global.doPost = routering({
+global.doPost = createCommands({
   slashCommand: {
     "/hello": () =>
       ContentService.createTextOutput(

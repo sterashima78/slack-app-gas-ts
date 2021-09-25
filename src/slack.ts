@@ -46,7 +46,7 @@ export type Command = Record<
   (payload: any) => GoogleAppsScript.Content.TextOutput
 >;
 
-export type Router = {
+export type Commands = {
   channelEvent?: Command;
   globalShortcut?: Command;
   messageShortcut?: Command;
@@ -72,35 +72,35 @@ const parseRequest = (e: GoogleAppsScript.Events.DoPost) => {
   }
 };
 
-const isChannelEvent = (commands: Router, payload: any) =>
+const isChannelEvent = (commands: Commands, payload: any) =>
   typeof payload?.event.channel !== "undefined" &&
   typeof commands?.channelEvent[payload.event.channel] === "function";
 
-const isGlobalShortcut = (commands: Router, payload: any) =>
+const isGlobalShortcut = (commands: Commands, payload: any) =>
   payload.type === "shortcut" &&
   typeof commands?.globalShortcut[payload.callback_id] === "function";
 
-const isMessageShortcut = (commands: Router, payload: any) =>
+const isMessageShortcut = (commands: Commands, payload: any) =>
   payload.type === "message_action" &&
   typeof commands?.messageShortcut[payload.callback_id] === "function";
 
-const isBlockActions = (commands: Router, payload: any) =>
+const isBlockActions = (commands: Commands, payload: any) =>
   payload.type === "block_actions" &&
   Array.isArray(payload.actions) &&
   payload.actions.length > 0 &&
   typeof payload.actions[0].action_id !== "undefined" &&
   typeof commands?.blockAction[payload.actions[0].action_id] === "function";
 
-const isViewSubmission = (commands: Router, payload: any) =>
+const isViewSubmission = (commands: Commands, payload: any) =>
   payload.type === "view_submission" &&
   typeof commands?.viewSubmission[payload.view.callback_id] === "function";
 
-const isSlashCommand = (commands: Router, payload: any) =>
+const isSlashCommand = (commands: Commands, payload: any) =>
   typeof payload.command !== "undefined" &&
   typeof commands?.slashCommand[payload.command] === "function";
 
-export const routering =
-  (command: Router) =>
+export const createCommands =
+  (command: Commands) =>
   (e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.TextOutput => {
     // 不正リクエスト
     if (typeof e.postData === "undefined") return ack("invalid request");
