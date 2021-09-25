@@ -1,4 +1,4 @@
-export const questionStart = () => ({
+export const questionStart = (): unknown => ({
   type: "modal",
   title: {
     type: "plain_text",
@@ -53,7 +53,7 @@ export const questionStart = () => ({
   ],
 });
 
-export const bugModal = () => ({
+export const bugModal = (): unknown => ({
   type: "modal",
   callback_id: "post-bug",
   title: {
@@ -135,7 +135,7 @@ export const bugModal = () => ({
   ],
 });
 
-export const devModal = () => ({
+export const devModal = (): unknown => ({
   type: "modal",
   callback_id: "post-dev",
   title: {

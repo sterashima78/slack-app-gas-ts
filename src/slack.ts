@@ -2,7 +2,9 @@
  * Slack API をコールする
  */
 export const slackApi =
-  (token: string) => (apiMethod: string) => (payload: object) =>
+  (token: string) =>
+  (apiMethod: string) =>
+  (payload: unknown): GoogleAppsScript.URL_Fetch.HTTPResponse =>
     UrlFetchApp.fetch(`https://www.slack.com/api/${apiMethod}`, {
       method: "post",
       contentType: "application/x-www-form-urlencoded",
@@ -13,7 +15,10 @@ export const slackApi =
 /**
  * response_url を使って応答するとき
  */
-export const respond = (responseUrl: string, payload: object | string) =>
+export const respond = (
+  responseUrl: string,
+  payload: unknown
+): GoogleAppsScript.URL_Fetch.HTTPResponse =>
   UrlFetchApp.fetch(responseUrl, {
     method: "post",
     contentType: "application/json; charset=utf-8",
@@ -25,7 +30,7 @@ export const respond = (responseUrl: string, payload: object | string) =>
 /**
  * Slack に応答する
  */
-export const ack = (payload: object | string) =>
+export const ack = (payload: unknown): GoogleAppsScript.Content.TextOutput =>
   ContentService.createTextOutput(
     typeof payload === "string" ? payload : JSON.stringify(payload)
   );
@@ -34,7 +39,7 @@ type InputValues = Record<
   string,
   Record<string, { type: string; value: string }>
 >;
-export const toInputValues = (inputs: InputValues) =>
+export const toInputValues = (inputs: InputValues): Record<string, string> =>
   Object.fromEntries(
     Object.values(inputs)
       .map((x) => Object.entries(x))
@@ -43,7 +48,7 @@ export const toInputValues = (inputs: InputValues) =>
 
 export type Command = Record<
   string,
-  (payload: any) => GoogleAppsScript.Content.TextOutput
+  (payload: unknown) => GoogleAppsScript.Content.TextOutput
 >;
 
 export type Commands = {
@@ -72,32 +77,39 @@ const parseRequest = (e: GoogleAppsScript.Events.DoPost) => {
   }
 };
 
-const isChannelEvent = (commands: Commands, payload: any) =>
-  typeof payload?.event.channel !== "undefined" &&
-  typeof commands?.channelEvent[payload.event.channel] === "function";
+const isChannelEvent = (commands: Commands, payload: unknown) =>
+  typeof payload === "object" &&
+  typeof payload["event"] === "object" &&
+  typeof payload["event"].channel === "object" &&
+  typeof commands?.channelEvent[payload["event"].channel] === "function";
 
-const isGlobalShortcut = (commands: Commands, payload: any) =>
-  payload.type === "shortcut" &&
-  typeof commands?.globalShortcut[payload.callback_id] === "function";
+const isGlobalShortcut = (commands: Commands, payload: unknown) =>
+  typeof payload === "object" &&
+  payload["type"] === "shortcut" &&
+  typeof commands?.globalShortcut[payload["callback_id"]] === "function";
 
-const isMessageShortcut = (commands: Commands, payload: any) =>
-  payload.type === "message_action" &&
-  typeof commands?.messageShortcut[payload.callback_id] === "function";
+const isMessageShortcut = (commands: Commands, payload: unknown) =>
+  typeof payload === "object" &&
+  payload["type"] === "message_action" &&
+  typeof commands?.messageShortcut[payload["callback_id"]] === "function";
 
-const isBlockActions = (commands: Commands, payload: any) =>
-  payload.type === "block_actions" &&
-  Array.isArray(payload.actions) &&
-  payload.actions.length > 0 &&
-  typeof payload.actions[0].action_id !== "undefined" &&
-  typeof commands?.blockAction[payload.actions[0].action_id] === "function";
+const isBlockActions = (commands: Commands, payload: unknown) =>
+  typeof payload === "object" &&
+  payload["type"] === "block_actions" &&
+  Array.isArray(payload["actions"]) &&
+  payload["actions"].length > 0 &&
+  typeof payload["actions"][0].action_id !== "undefined" &&
+  typeof commands?.blockAction[payload["actions"][0].action_id] === "function";
 
-const isViewSubmission = (commands: Commands, payload: any) =>
-  payload.type === "view_submission" &&
-  typeof commands?.viewSubmission[payload.view.callback_id] === "function";
+const isViewSubmission = (commands: Commands, payload: unknown) =>
+  typeof payload === "object" &&
+  payload["type"] === "view_submission" &&
+  typeof commands?.viewSubmission[payload["view"].callback_id] === "function";
 
-const isSlashCommand = (commands: Commands, payload: any) =>
-  typeof payload.command !== "undefined" &&
-  typeof commands?.slashCommand[payload.command] === "function";
+const isSlashCommand = (commands: Commands, payload: unknown) =>
+  typeof payload === "object" &&
+  typeof payload["command"] !== "undefined" &&
+  typeof commands?.slashCommand[payload["command"]] === "function";
 
 export const createCommands =
   (command: Commands) =>
