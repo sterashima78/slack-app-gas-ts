@@ -41,81 +41,100 @@ export const toInputValues = (inputs: InputValues) =>
       .flatMap((v) => v.map(([name, { value }]) => [name, value]))
   );
 
-// export type Router = {
-//   channel: Record<string, (payload: any) => void>;
-//   globalShortcut: Record<string, (payload: any) => void>;
-//   messageShortcut: Record<string, (payload: any) => void>;
-// };
-// export const routering =
-//   (command: Router) => (e: GoogleAppsScript.Events.DoPost) => {
-//     if (typeof e.postData === "undefined") return ack("invalid request");
-//     if (e.postData.type === "application/json") {
-//       // Events API (イベント API / URL 検証リクエスト)
+export type Command = Record<
+  string,
+  (payload: any) => GoogleAppsScript.Content.TextOutput
+>;
 
-//       const payload = JSON.parse(e.postData.contents);
-//       if (payload.token !== legacyVerificationToken) {
-//         return ack("invalid request");
-//       }
-//       if (typeof payload.challenge !== "undefined") {
-//         return ack(payload.challenge);
-//       }
-//       if (
-//         typeof payload.event.channel !== "undefined" &&
-//         typeof command.channel[payload.event.channel] === "function"
-//       ) {
-//         command.channel[payload.event.channel](payload);
-//       }
-//       return ack("");
-//     } else if (e.postData.type === "application/x-www-form-urlencoded") {
-//       if (typeof e.parameters.payload !== "undefined") {
-//         // Interactivity & Shortcuts (ボタン操作やモーダル送信、ショートカットなど)
+export type Router = {
+  channelEvent?: Command;
+  globalShortcut?: Command;
+  messageShortcut?: Command;
+  blockAction?: Command;
+  viewSubmission?: Command;
+  slashCommand?: Command;
+};
+const parseRequest = (e: GoogleAppsScript.Events.DoPost) => {
+  if (e.postData.type === "application/json") {
+    return JSON.parse(e.postData.contents);
+  } else if (typeof e.parameters.command !== "undefined") {
+    return Object.fromEntries(
+      Object.entries(e.parameters).map(([key, val]) => [key, val[0]])
+    );
+  } else if (
+    e.postData.type === "application/x-www-form-urlencoded" &&
+    Array.isArray(e.parameters.payload) &&
+    e.parameters.payload.length > 0
+  ) {
+    return JSON.parse(e.parameters.payload[0]);
+  } else {
+    return { token: "" };
+  }
+};
 
-//         const payload = JSON.parse(e.parameters.payload[0]);
-//         if (payload.token !== legacyVerificationToken) {
-//           return ack("invalid request");
-//         }
+const isChannelEvent = (commands: Router, payload: any) =>
+  typeof payload?.event.channel !== "undefined" &&
+  typeof commands?.channelEvent[payload.event.channel] === "function";
 
-//         // -------------------------------------------------------------
-//         // TODO: ここにあなたの処理を追加します
-//         if (
-//           payload.type === "shortcut" &&
-//           typeof command.globalShortcut[payload.callback_id] === "function"
-//         ) {
-//           command.globalShortcut[payload.callback_id](payload);
-//         } else if (
-//           payload.type === "message_action" &&
-//           typeof command.messageShortcut[payload.callback_id] === "function"
-//         ) {
-//           command.messageShortcut[payload.callback_id](payload);
-//         } else if (payload.type === "block_actions") {
-//           // Block Kit (message 内の blocks) 内のボタンクリック・セレクトメニューのアイテム選択イベント
-//           console.log(`Action data: ${JSON.stringify(payload.actions[0])}`);
-//         } else if (payload.type === "view_submission") {
-//           if (payload.view.callback_id === "modal-id") {
-//             // モーダルの submit ボタンを押してデータ送信が実行されたときのハンドリング
-//             const stateValues = payload.view.state.values;
-//             console.log(`View submssion data: ${JSON.stringify(stateValues)}`);
-//             // 空のボディで応答したときはモーダルを閉じる
-//             // response_action で errors / update / push など指定も可能
-//             return ack("");
-//           }
-//         }
-//         // -------------------------------------------------------------
-//       } else if (typeof e.parameters.command !== "undefined") {
-//         // ----------------------------
-//         // Slash Commands (スラッシュコマンドの実行)
-//         // ----------------------------
+const isGlobalShortcut = (commands: Router, payload: any) =>
+  payload.type === "shortcut" &&
+  typeof commands?.globalShortcut[payload.callback_id] === "function";
 
-//         const payload = {};
-//         for (const [key, value] of Object.entries(e.parameters)) {
-//           payload[key] = value[0];
-//         }
-//         if (payload.token !== legacyVerificationToken) {
-//           return ack("invalid request");
-//         }
+const isMessageShortcut = (commands: Router, payload: any) =>
+  payload.type === "message_action" &&
+  typeof commands?.messageShortcut[payload.callback_id] === "function";
 
-//       }
-//     }
-//     // 200 OK を返すことでペイロードを受信したことを Slack に対して伝える
-//     return ack("");
-//   };
+const isBlockActions = (commands: Router, payload: any) =>
+  payload.type === "block_actions" &&
+  Array.isArray(payload.actions) &&
+  payload.actions.length > 0 &&
+  typeof payload.actions[0].action_id !== "undefined" &&
+  typeof commands?.blockAction[payload.actions[0].action_id] === "function";
+
+const isViewSubmission = (commands: Router, payload: any) =>
+  payload.type === "view_submission" &&
+  typeof commands?.viewSubmission[payload.view.callback_id] === "function";
+
+const isSlashCommand = (commands: Router, payload: any) =>
+  typeof payload.command !== "undefined" &&
+  typeof commands?.slashCommand[payload.command] === "function";
+
+export const routering =
+  (command: Router) =>
+  (e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.TextOutput => {
+    // 不正リクエスト
+    if (typeof e.postData === "undefined") return ack("invalid request");
+    const payload = parseRequest(e);
+    if (payload.token !== process.env.SLACK_VERTIFICATION_TOKEN)
+      return ack("invalid request");
+
+    // チャレンジリクエスト
+    if (typeof payload.challenge !== "undefined") return ack(payload.challenge);
+
+    // チャンネルイベント
+    if (isChannelEvent(command, payload))
+      return command.channelEvent[payload.event.channel](payload);
+
+    // グローバルショートカット
+    if (isGlobalShortcut(command, payload))
+      return command.globalShortcut[payload.callback_id](payload);
+
+    // メッセージショートカット
+    if (isMessageShortcut(command, payload))
+      return command?.messageShortcut[payload.callback_id](payload);
+
+    // ブロックアクション
+    if (isBlockActions(command, payload))
+      return command?.blockAction[payload.actions[0].action_id](payload);
+
+    // モーダルの送信イベント
+    if (isViewSubmission(command, payload))
+      return command?.viewSubmission[payload.view.callback_id](payload);
+
+    // スラッシュコマンド
+    if (isSlashCommand(command, payload))
+      return command?.slashCommand[payload.command](payload);
+
+    // その他
+    return ack("");
+  };

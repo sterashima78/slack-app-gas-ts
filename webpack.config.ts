@@ -30,6 +30,9 @@ const config: Configuration = {
     }),
     new DefinePlugin({
       "process.env.SLACK_BOT_TOKEN": JSON.stringify(env.SLACK_BOT_TOKEN),
+      "process.env.SLACK_VERTIFICATION_TOKEN": JSON.stringify(
+        env.SLACK_VERTIFICATION_TOKEN
+      ),
     }),
   ],
 };
